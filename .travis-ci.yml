@@ -1,0 +1,11 @@
+sudo: required
+
+language: go
+
+services:
+  - docker
+
+before_install:
+- docker build --no-cache -t kainlite/whatismyip-go .
+- docker run -d -p 127.0.0.1:8000:8000 kainlite/whatismyip-go
+- docker ps -a
