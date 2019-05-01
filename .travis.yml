@@ -4,11 +4,11 @@ services:
   - docker
 
 before_install:
-- docker build --no-cache -t kainlite/whatismyip-go:latest .
-- docker run kainlite/whatismyip-go:latest /go/src/github.com/kainlite/whatismyip-go/whatismyip-go.test
-- docker run -d -p 127.0.0.1:8000:8000 kainlite/whatismyip-go:latest
+- docker build --no-cache -t ${TRAVIS_REPO_SLUG}:${TRAVIS_COMMIT} .
+- docker run ${TRAVIS_REPO_SLUG}:${TRAVIS_COMMIT} /go/src/github.com/kainlite/whatismyip-go/whatismyip-go.test
+- docker run -d -p 127.0.0.1:8000:8000 ${TRAVIS_REPO_SLUG}:${TRAVIS_COMMIT}
 
 script:
   - curl 127.0.0.1:8000
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - docker push kainlite/whatismyip-go:latest
+  - docker push ${TRAVIS_REPO_SLUG}:${TRAVIS_COMMIT}
