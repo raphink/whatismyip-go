@@ -10,8 +10,9 @@ COPY . .
 # https://stackoverflow.com/questions/28031603/what-do-three-dots-mean-in-go-command-line-invocations
 RUN go get -d -v ./...
 
-# Install the package
-RUN go install -v ./...
+# Install the package and create test binary
+RUN go install -v ./... && \
+    CGO_ENABLED=0 GOOS=linux go test -c
 
 # This container exposes port 8080 to the outside world
 EXPOSE 8000
@@ -23,4 +24,4 @@ ENV WHATISMYIP_PORT 8000
 USER nobody:nobody
 
 # Run the executable
-ENTRYPOINT ["whatismyip-go"]
+CMD ["whatismyip-go"]
