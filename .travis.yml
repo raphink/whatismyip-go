@@ -12,3 +12,16 @@ script:
   - curl 127.0.0.1:8000
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - docker push ${TRAVIS_REPO_SLUG}:${TRAVIS_COMMIT}
+
+after_success:
+  - echo ${KUBERNETES_CA} | base64 -d > k8s-ca.pem
+  - echo ${KUBERNETES_CLIENT_CA} | base64 -d > k8s-client-ca.pem
+  - echo ${KUBERNETES_CLIENT_KEY} | base64 -d > k8s-key.pem
+  - curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  - envsubst < ./kubernetes/manifest.yml.template > ./kubernetes/manifest.yml
+  - chmod u+x ./kubectl
+  - ./kubectl config set-cluster dev-k8s --server=${KUBERNETES_ENDPOINT} --certificate-authority=k8s-ca.pem
+  - ./kubectl config set-credentials dev-k8s --client-certificate=k8s-client-ca.pem --client-key=k8s-key.pem
+  - ./kubectl config set-context dev-k8s --cluster=dev-k8s --namespace=default --user=dev-k8s
+  - ./kubectl config use-context dev-k8s
+  - ./kubectl apply -f ./kubernetes/manifest.yml
