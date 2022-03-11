@@ -26,4 +26,4 @@ EXPOSE 8000
 USER 1000
 
 # Run the executable
-CMD ["/whatismyip"]
+ENTRYPOINT ["/whatismyip"]
