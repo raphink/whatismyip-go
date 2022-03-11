@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine as build
+FROM golang as build
 
 # Set the Current Working Directory inside the container
 WORKDIR $GOPATH/src/github.com/kainlite/whatismyip-go
