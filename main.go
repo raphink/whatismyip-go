@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -14,8 +16,23 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 			"ip": ipAddress,
 		},
 	).Info("Serving IP adress")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(ipAddress))
+
+	allowedIP := os.Getenv("ALLOWED_IP")
+	if allowedIP == "" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(ipAddress))
+		return
+	}
+
+	if ipAddress == allowedIP {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf("Welcome from %s\n", ipAddress)))
+		return
+	}
+
+	w.WriteHeader(http.StatusUnauthorized)
+	w.Write([]byte(fmt.Sprintf("Access denied from %s\n", ipAddress)))
+	return
 }
 
 func main() {
