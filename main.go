@@ -26,12 +26,12 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 
 	if ipAddress == allowedIP {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Welcome from %s\n", ipAddress)))
+		w.Write([]byte(fmt.Sprintf("Access granted. Your source IP (%s) matches the allowed IP.\n", ipAddress)))
 		return
 	}
 
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(fmt.Sprintf("Access denied from %s\n", ipAddress)))
+	w.Write([]byte(fmt.Sprintf("Access denied. Your source IP (%s) doesn't match the allowed IP (%s)\n", ipAddress, allowedIP)))
 	return
 }
 
