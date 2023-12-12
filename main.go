@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -17,21 +18,23 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	).Info("Serving IP adress")
 
-	allowedIP := os.Getenv("ALLOWED_IP")
-	if allowedIP == "" {
+	allowedIPs := os.Getenv("ALLOWED_IP")
+	if allowedIPs == "" {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(ipAddress))
 		return
 	}
 
-	if ipAddress == allowedIP {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(fmt.Sprintf("Access granted. Your source IP (%s) matches the allowed IP.\n", ipAddress)))
-		return
+	for _, allowedIP := range strings.Split(allowedIPs, ",") {
+		if ipAddress == allowedIP {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(fmt.Sprintf("Access granted. Your source IP (%s) matches an allowed IP.\n", ipAddress)))
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(fmt.Sprintf("Access denied. Your source IP (%s) doesn't match the allowed IP (%s)\n", ipAddress, allowedIP)))
+	w.Write([]byte(fmt.Sprintf("Access denied. Your source IP (%s) doesn't match the allowed IPs (%s)\n", ipAddress, allowedIPs)))
 	return
 }
 
