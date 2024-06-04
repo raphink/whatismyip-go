@@ -1,4 +1,4 @@
-package main
+package whatismyip
 
 import (
 	"fmt"
@@ -8,9 +8,14 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/GoogleCloudPlatform/functions-framework-go/functions"
 )
 
-func httpHandler(w http.ResponseWriter, r *http.Request) {
+func init() {
+	functions.HTTP("WhatIsMyIP", whatIsMyIP)
+}
+
+func whatIsMyIP(w http.ResponseWriter, r *http.Request) {
 	ipAddress, _, _ := net.SplitHostPort(r.RemoteAddr)
 	log.WithFields(
 		log.Fields{
@@ -36,10 +41,4 @@ func httpHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusUnauthorized)
 	w.Write([]byte(fmt.Sprintf("Access denied. Your source IP (%s) doesn't match the allowed IPs (%s)\n", ipAddress, allowedIPs)))
 	return
-}
-
-func main() {
-	http.HandleFunc("/", httpHandler)
-	log.Info("Starting server on port 8000")
-	log.Fatal(http.ListenAndServe(":8000", nil))
 }

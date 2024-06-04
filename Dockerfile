@@ -1,29 +1,16 @@
-FROM golang as build
+FROM golang:1.22
 
-# Set the Current Working Directory inside the container
-WORKDIR $GOPATH/src/github.com/kainlite/whatismyip-go
+WORKDIR /app
+
 COPY . .
 
-# Download all the dependencies
-# https://stackoverflow.com/questions/28031603/what-do-three-dots-mean-in-go-command-line-invocations
-RUN go get -d -v ./...
+RUN go build -o myapp ./cmd/main.go
 
-ENV \
-  CGO_ENABLED=0 \
-  GOOS=linux
+ENV DEV=true
+ENV PORT=8080
 
-# Install the package and create test binary
-RUN go install -v ./... && \
-    go test -c
+EXPOSE $PORT
 
+ENV FUNCTION_TARGET=WhatIsMyIP
 
-FROM scratch
-COPY --from=build /go/bin/whatismyip-go /whatismyip
-
-# This container exposes port 8080 to the outside world
-EXPOSE 8000
-
-USER 1000
-
-# Run the executable
-ENTRYPOINT ["/whatismyip"]
+CMD ["./myapp"]
