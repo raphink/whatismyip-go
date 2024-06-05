@@ -122,6 +122,12 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if net.ParseIP(ipAddress) == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid IP address format"))
+		return
+	}
+
 	if projectID == "" {
 		addIPToEnv(ipAddress)
 	} else {
@@ -162,6 +168,12 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	if ipAddress == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("IP address is required"))
+		return
+	}
+
+	if net.ParseIP(ipAddress) == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid IP address format"))
 		return
 	}
 
