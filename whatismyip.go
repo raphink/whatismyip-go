@@ -2,6 +2,7 @@ package whatismyip
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -54,6 +55,11 @@ func whatIsMyIP(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/list" {
+		listAllowedIPs(w, r)
+		return
+	}
+
 	ipAddress, _, _ := net.SplitHostPort(r.RemoteAddr)
 	log.WithFields(
 		log.Fields{
@@ -186,14 +192,19 @@ func removeIPFromFirestore(ip string) error {
 }
 
 func addIPToEnv(ip string) {
-	allowedIPs := strings.Split(os.Getenv("ALLOWED_IP"), ",")
+	allowedIPEnv := os.Getenv("ALLOWED_IP")
+	allowedIPs := strings.Split(allowedIPEnv, ",")
 	for _, allowedIP := range allowedIPs {
 		if allowedIP == ip {
 			return
 		}
 	}
-	allowedIPs = append(allowedIPs, ip)
-	os.Setenv("ALLOWED_IP", strings.Join(allowedIPs, ","))
+	if allowedIPEnv == "" {
+		os.Setenv("ALLOWED_IP", ip)
+	} else {
+		allowedIPs = append(allowedIPs, ip)
+		os.Setenv("ALLOWED_IP", strings.Join(allowedIPs, ","))
+	}
 }
 
 func removeIPFromEnv(ip string) {
@@ -205,4 +216,20 @@ func removeIPFromEnv(ip string) {
 		}
 	}
 	os.Setenv("ALLOWED_IP", strings.Join(updatedIPs, ","))
+}
+
+func listAllowedIPs(w http.ResponseWriter, r *http.Request) {
+	allowedIPs, err := getAllowedIPs()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal server error"))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(allowedIPs); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Failed to encode response"))
+		return
+	}
 }
