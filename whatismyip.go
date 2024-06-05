@@ -54,18 +54,40 @@ func whatIsMyIP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getIPAddress(r *http.Request) string {
+	// Try to get the IP address from the X-Forwarded-For header
+	xff := r.Header.Get("X-Forwarded-For")
+	if xff != "" {
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	// Fall back to X-Real-IP header
+	xri := r.Header.Get("X-Real-IP")
+	if xri != "" {
+		return strings.TrimSpace(xri)
+	}
+
+	// Fall back to RemoteAddr
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
+}
+
 func handleGet(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/list" {
 		listAllowedIPs(w, r)
 		return
 	}
 
-	ipAddress, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ipAddress := getIPAddress(r)
 	log.WithFields(
 		log.Fields{
 			"ip": ipAddress,
 		},
-	).Info("Serving IP adress")
+	).Info("Serving IP address")
 
 	allowedIPs, err := getAllowedIPs()
 	if err != nil {
