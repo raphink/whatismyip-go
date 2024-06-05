@@ -3,8 +3,10 @@ package whatismyip
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -107,7 +109,28 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDelete(w http.ResponseWriter, r *http.Request) {
-	ipAddress := r.FormValue("ip")
+	// Parse the form data manually
+	if err := r.ParseForm(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Failed to parse form data"))
+		return
+	}
+
+	// Read the body to get the form data
+	var body []byte
+	if r.Body != nil {
+		body, _ = ioutil.ReadAll(r.Body)
+	}
+
+	// Parse the body to get the IP address
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Failed to parse body data"))
+		return
+	}
+
+	ipAddress := values.Get("ip")
 	if ipAddress == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("IP address is required"))
