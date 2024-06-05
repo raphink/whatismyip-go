@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -147,7 +147,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	// Read the body to get the form data
 	var body []byte
 	if r.Body != nil {
-		body, _ = ioutil.ReadAll(r.Body)
+		body, _ = io.ReadAll(r.Body)
 	}
 
 	// Parse the body to get the IP address
