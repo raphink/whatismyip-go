@@ -2,6 +2,7 @@ package whatismyip
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -78,6 +79,13 @@ func getIPAddress(r *http.Request) string {
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/list" {
+		if !checkBasicAuth(r) {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			w.Write([]byte("Unauthorized"))
+			return
+		}
+
 		listAllowedIPs(w, r)
 		return
 	}
@@ -115,6 +123,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
+	if !checkBasicAuth(r) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		w.Write([]byte("Unauthorized"))
+		return
+	}
+
 	ipAddress := r.FormValue("ip")
 	if ipAddress == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -143,6 +158,13 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDelete(w http.ResponseWriter, r *http.Request) {
+	if !checkBasicAuth(r) {
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+		w.Write([]byte("Unauthorized"))
+		return
+	}
+
 	// Parse the form data manually
 	if err := r.ParseForm(); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -266,4 +288,28 @@ func listAllowedIPs(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Failed to encode response"))
 		return
 	}
+}
+
+func checkBasicAuth(r *http.Request) bool {
+	auth := r.Header.Get("Authorization")
+	if auth == "" {
+		return false
+	}
+
+	// Check if the auth method is Basic
+	if !strings.HasPrefix(auth, "Basic ") {
+		return false
+	}
+
+	// Decode the base64 encoded credentials
+	encodedCredentials := strings.TrimPrefix(auth, "Basic ")
+	decodedBytes, err := base64.StdEncoding.DecodeString(encodedCredentials)
+	if err != nil {
+		return false
+	}
+	decodedCredentials := string(decodedBytes)
+
+	// Get the credentials from the environment variable
+	expectedCredentials := os.Getenv("BASIC_AUTH")
+	return decodedCredentials == expectedCredentials
 }

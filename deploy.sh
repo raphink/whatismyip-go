@@ -2,7 +2,7 @@
 
 FUNCTION="whatismyip"
 ENTRYPOINT="WhatIsMyIP"
-SECRETS=""
+SECRETS="BASIC_AUTH=whatismyip-auth:latest"
 
 gcloud functions deploy "${FUNCTION}" \
   --project=cilium-demo \
