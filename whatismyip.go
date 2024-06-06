@@ -78,7 +78,7 @@ func getIPAddress(r *http.Request) string {
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path == "/list" {
+	if strings.HasSuffix(r.URL.Path, "/list") {
 		if !checkBasicAuth(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
@@ -278,20 +278,36 @@ func removeIPFromEnv(ip string) {
 }
 
 func listAllowedIPs(w http.ResponseWriter, r *http.Request) {
-	playId := strings.TrimPrefix(r.URL.Path, "/")
-
-	allowedIPs, err := getAllowedIPs(playId)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Internal server error"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(allowedIPs); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Failed to encode response"))
-		return
+	path := strings.TrimPrefix(r.URL.Path, "/")
+	if path == "list" {
+		// Return all IPs with their playId
+		allIPs, err := getAllAllowedIPs()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Internal server error"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(allIPs); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Failed to encode response"))
+			return
+		}
+	} else {
+		// Return IPs for the specific playId
+		playId := strings.TrimSuffix(path, "/list")
+		allowedIPs, err := getAllowedIPs(playId)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Internal server error"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(allowedIPs); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Failed to encode response"))
+			return
+		}
 	}
 }
 
@@ -317,4 +333,33 @@ func checkBasicAuth(r *http.Request) bool {
 	// Get the credentials from the environment variable
 	expectedCredentials := os.Getenv("BASIC_AUTH")
 	return decodedCredentials == expectedCredentials
+}
+
+func getAllAllowedIPs() (map[string][]string, error) {
+	allIPs := make(map[string][]string)
+	iter := client.Collection(firestoreCollection).Documents(ctx)
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		playId := doc.Ref.ID
+		ipsIter := doc.Ref.Collection("ips").Documents(ctx)
+		var ips []string
+		for {
+			ipDoc, err := ipsIter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+			ips = append(ips, ipDoc.Ref.ID)
+		}
+		allIPs[playId] = ips
+	}
+	return allIPs, nil
 }
