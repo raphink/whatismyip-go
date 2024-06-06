@@ -97,7 +97,8 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		},
 	).Info("Serving IP address")
 
-	allowedIPs, err := getAllowedIPs()
+	playId := strings.TrimPrefix(r.URL.Path, "/")
+	allowedIPs, err := getAllowedIPs(playId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
@@ -146,7 +147,8 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	if projectID == "" {
 		addIPToEnv(ipAddress)
 	} else {
-		if err := addIPToFirestore(ipAddress); err != nil {
+		playId := strings.TrimPrefix(r.URL.Path, "/")
+		if err := addIPToFirestore(playId, ipAddress); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Failed to add IP address"))
 			return
@@ -202,7 +204,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	if projectID == "" {
 		removeIPFromEnv(ipAddress)
 	} else {
-		if err := removeIPFromFirestore(ipAddress); err != nil {
+		playId := strings.TrimPrefix(r.URL.Path, "/")
+		if err := removeIPFromFirestore(playId, ipAddress); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Failed to remove IP address"))
 			return
@@ -213,7 +216,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf("IP address %s removed successfully", ipAddress)))
 }
 
-func getAllowedIPs() ([]string, error) {
+func getAllowedIPs(playId string) ([]string, error) {
 	if projectID == "" {
 		if allowedIPEnv := os.Getenv("ALLOWED_IP"); allowedIPEnv != "" {
 			return strings.Split(allowedIPEnv, ","), nil
@@ -223,7 +226,7 @@ func getAllowedIPs() ([]string, error) {
 	}
 
 	var allowedIPs []string
-	iter := client.Collection(firestoreCollection).Documents(ctx)
+	iter := client.Collection(firestoreCollection).Doc(playId).Collection("ips").Documents(ctx)
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
@@ -237,13 +240,13 @@ func getAllowedIPs() ([]string, error) {
 	return allowedIPs, nil
 }
 
-func addIPToFirestore(ip string) error {
-	_, err := client.Collection(firestoreCollection).Doc(ip).Set(ctx, map[string]interface{}{})
+func addIPToFirestore(playId, ip string) error {
+	_, err := client.Collection(firestoreCollection).Doc(playId).Collection("ips").Doc(ip).Set(ctx, map[string]interface{}{})
 	return err
 }
 
-func removeIPFromFirestore(ip string) error {
-	_, err := client.Collection(firestoreCollection).Doc(ip).Delete(ctx)
+func removeIPFromFirestore(playId, ip string) error {
+	_, err := client.Collection(firestoreCollection).Doc(playId).Collection("ips").Doc(ip).Delete(ctx)
 	return err
 }
 
@@ -275,7 +278,9 @@ func removeIPFromEnv(ip string) {
 }
 
 func listAllowedIPs(w http.ResponseWriter, r *http.Request) {
-	allowedIPs, err := getAllowedIPs()
+	playId := strings.TrimPrefix(r.URL.Path, "/")
+
+	allowedIPs, err := getAllowedIPs(playId)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Internal server error"))
