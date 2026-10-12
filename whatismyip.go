@@ -224,6 +224,9 @@ func getAllowedIPs(playId string) ([]string, error) {
 			return []string{}, nil
 		}
 	}
+	if playId == "" {
+		return []string{}, nil
+	}
 
 	var allowedIPs []string
 	iter := client.Collection(firestoreCollection).Doc(playId).Collection("ips").Documents(ctx)
