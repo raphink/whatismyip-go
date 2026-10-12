@@ -9,5 +9,7 @@ gcloud functions deploy "${FUNCTION}" \
   --project="${GCP_PROJECT}" \
   --gen2 --runtime=go122 --region=europe-west1 --source=. \
   --entry-point="$ENTRYPOINT" --trigger-http --allow-unauthenticated \
+  --update-labels=intended_public=true,non_native_auth=true \
+  --timeout=60s \
   --set-env-vars GCP_PROJECT="${GCP_PROJECT}" \
   --set-secrets="$SECRETS"
