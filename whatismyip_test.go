@@ -13,7 +13,7 @@ func TestHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(httpHandler)
+	handler := http.HandlerFunc(whatIsMyIP)
 
 	handler.ServeHTTP(rr, req)
 
